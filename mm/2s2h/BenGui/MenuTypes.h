@@ -299,6 +299,10 @@ static const std::unordered_map<int32_t, const char*> windowBackendsMap = {
     { Fast::WindowBackend::FAST3D_DXGI_DX11, "DirectX" },
     { Fast::WindowBackend::FAST3D_SDL_OPENGL, "OpenGL" },
     { Fast::WindowBackend::FAST3D_SDL_METAL, "Metal" },
+    // Must exist for every backend AddAvailableWindowBackend() registers: Menu::InitElement()
+    // does windowBackendsMap.at(backend) over the available list, so a missing entry throws
+    // std::out_of_range out of the OTRGlobals constructor.
+    { Fast::WindowBackend::FAST3D_WIIU_GX2, "GX2" },
 };
 
 struct MenuInit {
