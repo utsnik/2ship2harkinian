@@ -754,6 +754,16 @@ void OTRGlobals::Initialize() {
 OTRGlobals::~OTRGlobals() {
 }
 
+#ifdef __WIIU__
+// 2S2H's archive-preload defaults (the engine's are 16 MB per archive / 64 MB in total). mm.o2r (36 MB) holds ~85% of
+// the files a scene change loads and the BC texture pack is ~118 MB; with both in RAM the same scene changes went from
+// 2.8 s to ~0.23 s of hitches (2026-10-03) with ~196 MB left free. A value in the json still wins.
+extern "C" void wiiu_o2r_preload_defaults(int32_t* maxArchiveMB, int32_t* budgetMB) {
+    *maxArchiveMB = 128;
+    *budgetMB = 170;
+}
+#endif
+
 extern "C" uint32_t Ship_GetInterpolationFPS() {
     return OTRGlobals::Instance->GetInterpolationFPS();
 }
