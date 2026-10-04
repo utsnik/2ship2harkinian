@@ -282,6 +282,30 @@ namespace BenGui {
 extern std::shared_ptr<BenGui::BenMenu> mBenMenu;
 }
 
+#ifdef __WIIU__
+#include <coreinit/systeminfo.h> // OSEnableHomeButtonMenu
+// Archive problems on the Wii U: the popup cannot exit (OK and HOME -> Close both hang from the extraction loop, seen
+// on SoH), so the message tells the player to hold POWER. The popup does not wrap text, so lines are broken by hand to
+// fit the GamePad; HOME is switched off while it shows, because opening the HOME menu from here hangs the console.
+#define WIIU_MSG_POWER                                                                                             \
+    "Hold the POWER button to turn off your Wii U,\n"                                                             \
+    "copy mm.o2r into sd:/wiiu/apps/2s2h/,\n"                                                                     \
+    "then start 2 Ship 2 Harkinian again."
+#define WIIU_MSG_MISSING                                                                                           \
+    "Missing mm.o2r.\n\n"                                                                                          \
+    "Make it once on a PC with desktop 2 Ship 2 Harkinian\n"                                                      \
+    "from your own Majora's Mask (US 1.0) ROM, then put it\n"                                                     \
+    "in sd:/wiiu/apps/2s2h/. See README.md in the release zip.\n\n" WIIU_MSG_POWER
+#define WIIU_MSG_OUTDATED                                                                                          \
+    "Your mm.o2r was made with a different 2 Ship 2 Harkinian version.\n\n"                                       \
+    "Make mm.o2r again on a PC with the matching desktop version\n"                                               \
+    "from your own Majora's Mask ROM. See README.md in the release zip.\n\n" WIIU_MSG_POWER
+static void WiiUArchivePopup(const char* title, const char* msg) {
+    OSEnableHomeButtonMenu(FALSE);
+    BenGui::RegisterPopup(title, msg, "Hold POWER to turn off", "", []() {});
+}
+#endif
+
 void OTRGlobals::RunExtract(int argc, char* argv[]) {
     bool extractDone = false;
 #if defined(__WIIU__)
@@ -294,7 +318,8 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
 
     bool shouldRegen = VerifyArchiveVersion(DetectArchiveVersion("mm.o2r", true));
 #if defined(__WIIU__)
-    auto requestWiiUExit = [&]() {
+    // Unused while the archive popups cannot exit (see WiiUArchivePopup); kept for when a clean exit works.
+    [[maybe_unused]] auto requestWiiUExit = [&]() {
         wiiuExitRequested = true;
         wnd->Close();
     };
@@ -328,11 +353,7 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
     }
 #elif defined(__WIIU__)
     if (shouldRegen) {
-        BenGui::RegisterPopup("Outdated ROM Archives",
-                              "Your mm.o2r was made with a different 2 Ship 2 Harkinian version.\n\n"
-                              "Please generate a new mm.o2r and relaunch.\n\n"
-                              "Press OK to exit.",
-                              "OK", "", requestWiiUExit);
+        WiiUArchivePopup("Outdated ROM Archives", WIIU_MSG_OUTDATED);
     }
 #endif
 
@@ -395,9 +416,9 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
                     msg = "\x1b[4;2HPlease re-extract it from the download.\n"
                           "\x1b[6;2HPress the Home button to exit...";
 #elif defined(__WIIU__)
-                    msg = "Please extract the 2ship.o2r from the 2 Ship 2 Harkinian download\nto your folder.\n\nPress "
-                          "and hold the power\n"
-                          "button to shutdown...";
+                    msg = "2ship.o2r is missing or outdated.\n\n"
+                          "Copy 2ship.o2r from the Wii U release zip\n"
+                          "into sd:/wiiu/apps/2s2h/.\n\n" WIIU_MSG_POWER;
 #else
                     msg = "Please extract the 2ship.o2r from the 2 Ship 2 Harkinian download to your "
                           "folder.\n\nExiting...";
@@ -405,7 +426,7 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
                     std::string title =
                         !std::filesystem::exists(portArchivePath) ? "Missing 2ship.o2r" : "2ship.o2r is outdated";
 #if defined(__WIIU__)
-                    BenGui::RegisterPopup(title, msg, "OK", "", requestWiiUExit);
+                    WiiUArchivePopup(title.c_str(), msg.c_str());
 #else
                     BenGui::RegisterPopup(title, msg, "OK", "", [&]() { exit(1); });
 #endif
@@ -577,9 +598,7 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
             case ES_VERIFY: {
                 if (!std::filesystem::exists(Ship::Context::LocateFileAcrossAppDirs("mm.o2r", appShortName))) {
 #if defined(__WIIU__)
-                    BenGui::RegisterPopup("No ROM Archives",
-                                          "No mm.o2r detected. Please generate a ROM O2R and relaunch.", "OK", "",
-                                          requestWiiUExit);
+                    WiiUArchivePopup("No ROM Archives", WIIU_MSG_MISSING);
 #else
                     BenGui::RegisterPopup("No ROM Archives",
                                           "No ROM O2R files detected. Please generate a ROM O2R and relaunch.", "OK",
