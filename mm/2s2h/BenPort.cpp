@@ -283,19 +283,22 @@ extern std::shared_ptr<BenGui::BenMenu> mBenMenu;
 }
 
 void OTRGlobals::RunExtract(int argc, char* argv[]) {
-#ifdef __WIIU__
-    // ROM extraction, deletion, and desktop popups are host-only. Wii U receives staged O2R files.
-    (void)argc;
-    (void)argv;
-    return;
-#else
     bool extractDone = false;
+#if defined(__WIIU__)
+    bool wiiuExitRequested = false;
+#endif
     ExtractSteps extractStep = ES_PORT_ARCHIVE;
     WindowsSteps windowsStep = WS_TEMP;
     auto wnd = std::dynamic_pointer_cast<Fast::Fast3dWindow>(OTRGlobals::Instance->context->GetWindow());
     auto gui = wnd->GetGui();
 
     bool shouldRegen = VerifyArchiveVersion(DetectArchiveVersion("mm.o2r", true));
+#if defined(__WIIU__)
+    auto requestWiiUExit = [&]() {
+        wiiuExitRequested = true;
+        wnd->Close();
+    };
+#endif
 
     std::filesystem::path ownPath;
     std::vector<std::string> args;
@@ -304,7 +307,9 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
             args.push_back(argv[i]);
         }
     }
+#if !defined(__WIIU__)
     Extractor extract;
+#endif
     PromptSteps promptStep = PS_FILE_CHECK;
     bool romsFromSearch = false;
     std::atomic<size_t> extractCount = 0, totalExtract = 0;
@@ -314,20 +319,24 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
     std::string file;
 
 #if defined(__SWITCH__)
-    BenGui::RegisterPopup("Outdated ROM Archives",
-                          "\x1b[2;2HYou've launched 2Ship with an old ROM O2R file."
-                          "\x1b[4;2HPlease regenerate a new ROM O2R and relaunch."
-                          "\x1b[6;2HPress the Home button to exit...",
-                          "OK", "", [&]() { exit(1); });
+    if (shouldRegen) {
+        BenGui::RegisterPopup("Outdated ROM Archives",
+                              "\x1b[2;2HYou've launched 2Ship with an old ROM O2R file."
+                              "\x1b[4;2HPlease regenerate a new ROM O2R and relaunch."
+                              "\x1b[6;2HPress the Home button to exit...",
+                              "OK", "", [&]() { exit(1); });
+    }
 #elif defined(__WIIU__)
-    BenGui::RegisterPopup("Outdated ROM Archives",
-                          "You've launched 2Ship with an old a ROM O2R file.\n\n"
-                          "Please generate a ROM O2R and relaunch.\n\n"
-                          "Press and hold the Power button to shutdown...",
-                          "OK", "", [&]() { exit(1); });
-    OSFatal();
+    if (shouldRegen) {
+        BenGui::RegisterPopup("Outdated ROM Archives",
+                              "Your mm.o2r was made with a different 2 Ship 2 Harkinian version.\n\n"
+                              "Please generate a new mm.o2r and relaunch.\n\n"
+                              "Press OK to exit.",
+                              "OK", "", requestWiiUExit);
+    }
 #endif
 
+#if !defined(__SWITCH__) && !defined(__WIIU__)
     if (!std::filesystem::exists(installPath + "/assets")) {
         BenGui::RegisterPopup("Extractor assets not found",
                               "No O2R files found. Missing 'assets/' folder needed to generate OTR file.\nPlease "
@@ -345,18 +354,30 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
                                   "OK", "", [&]() { exit(1); });
         }
     }
+#endif
 
+#if !defined(__WIIU__)
     std::shared_ptr<BS::thread_pool> threadPool = std::make_shared<BS::thread_pool>(1);
     std::optional<std::future<void>> extractionTask;
+#endif
 
 #if not defined(__SWITCH__) && not defined(__WIIU__)
     CheckAndCreateModFolder();
 #endif
 
     while (!extractDone) {
-        if (BenGui::PopupsQueued() > 0 || extractionTask.has_value()) {
+        if (BenGui::PopupsQueued() > 0
+#if !defined(__WIIU__)
+            || extractionTask.has_value()
+#endif
+        ) {
             goto render;
         }
+#if defined(__WIIU__)
+        if (wiiuExitRequested) {
+            goto render;
+        }
+#endif
         switch (extractStep) {
             case ES_PORT_ARCHIVE: {
                 if (shipArchiveVersionMatch) {
@@ -383,7 +404,11 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
 #endif
                     std::string title =
                         !std::filesystem::exists(portArchivePath) ? "Missing 2ship.o2r" : "2ship.o2r is outdated";
+#if defined(__WIIU__)
+                    BenGui::RegisterPopup(title, msg, "OK", "", requestWiiUExit);
+#else
                     BenGui::RegisterPopup(title, msg, "OK", "", [&]() { exit(1); });
+#endif
                 }
                 continue;
             }
@@ -496,6 +521,7 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
 #endif
                 break;
             }
+#if !defined(__WIIU__)
             case ES_EXTRACT: {
                 switch (promptStep) {
                     case PS_FILE_CHECK: {
@@ -547,12 +573,27 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
                 }
                 break;
             }
+#endif
             case ES_VERIFY: {
                 if (!std::filesystem::exists(Ship::Context::LocateFileAcrossAppDirs("mm.o2r", appShortName))) {
+#if defined(__WIIU__)
+                    BenGui::RegisterPopup("No ROM Archives",
+                                          "No mm.o2r detected. Please generate a ROM O2R and relaunch.", "OK", "",
+                                          requestWiiUExit);
+#else
                     BenGui::RegisterPopup("No ROM Archives",
                                           "No ROM O2R files detected. Please generate a ROM O2R and relaunch.", "OK",
                                           "", [&]() { exit(0); });
+#endif
+#if defined(__WIIU__)
+                    continue;
+#endif
                 }
+#if defined(__WIIU__)
+                if (shouldRegen) {
+                    continue;
+                }
+#endif
                 extractDone = true;
                 continue;
             }
@@ -562,7 +603,11 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
 
     render:
         if (!WindowIsRunning()) {
+#if defined(__WIIU__)
+            break;
+#else
             exit(0);
+#endif
         }
         // Process window events for resize, mouse, keyboard events
         wnd->HandleEvents();
@@ -578,6 +623,7 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
         gui->StartDraw();
         benFast3dWindow->StartFrame();
         benFast3dWindow->RunGuiOnly();
+#if !defined(__WIIU__)
         if (extractionTask.has_value()) {
             auto status = extractionTask->wait_for(std::chrono::milliseconds(0));
             if (status == std::future_status::ready) {
@@ -613,12 +659,11 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
                 ImGui::PopStyleVar(2);
             }
         }
+#endif
         gui->EndDraw();
         benFast3dWindow->EndFrame();
         ImGui::PopStyleColor(2);
     }
-
-#endif
 }
 
 void OTRGlobals::Initialize() {
@@ -985,13 +1030,29 @@ bool VerifyArchiveVersion(ArchiveVersion version) {
     return version.major != INT16_MAX && version.major != gBuildVersionMajor;
 }
 
+#ifdef __WIIU__
+extern "C" int InitOTR(int argc, char* argv[]) {
+#else
 extern "C" void InitOTR(int argc, char* argv[]) {
+#endif
 #ifdef __WIIU__
     // CafeOS starts with the SD card as its cwd. This must be the first statement before Context or archive lookup.
     Ship::WiiU::Init(appShortName);
 #endif
     OTRGlobals::Instance = new OTRGlobals();
     OTRGlobals::Instance->RunExtract(argc, argv);
+
+#ifdef __WIIU__
+    if (!WindowIsRunning()) {
+        // RunExtract waits for ProcUI to release the title after SYSLaunchMenu().
+        // Destroy the GUI/window ownership here, before returning to main, rather
+        // than invoking exit() while GX2 still owns the foreground.
+        BenGui::Destroy();
+        benFast3dWindow = nullptr;
+        OTRGlobals::Instance->context = nullptr;
+        return 0;
+    }
+#endif
 
     OTRGlobals::Instance->Initialize();
 
@@ -1044,6 +1105,9 @@ extern "C" void InitOTR(int argc, char* argv[]) {
 
     Ship::Context::GetRawInstance()->GetFileDropMgr()->RegisterDropHandler(BinarySaveConverter_HandleFileDropped);
     Ship::Context::GetRawInstance()->GetFileDropMgr()->RegisterDropHandler(SaveManager_HandleFileDropped);
+#ifdef __WIIU__
+    return 1;
+#endif
 }
 
 extern "C" void SaveManager_ThreadPoolWait() {

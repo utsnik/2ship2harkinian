@@ -82,7 +82,11 @@ uint32_t IsGameMasterQuest();
 #include <z64keyframe.h>
 #include <z64scene.h>
 #include <z64skin.h>
+#ifdef __WIIU__
+int InitOTR(int argc, char* argv[]);
+#else
 void InitOTR(int argc, char* argv[]);
+#endif
 void DeinitOTR(void);
 void VanillaItemTable_Init();
 void OTRAudio_Init();

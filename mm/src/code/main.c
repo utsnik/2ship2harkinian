@@ -47,7 +47,11 @@ s32 gScreenWidth = SCREEN_WIDTH;
 s32 gScreenHeight = SCREEN_HEIGHT;
 size_t gSystemHeapSize = 0;
 
+#ifdef __WIIU__
+int InitOTR(int argc, char* argv[]);
+#else
 void InitOTR(int argc, char* argv[]);
+#endif
 void Heaps_Free(void);
 #ifdef __GNUC__
 #define SDL_main main
@@ -72,7 +76,13 @@ int SDL_main(int argc, char* argv[] /* void* arg*/) {
     setlocale(LC_ALL, ".UTF8");
 #endif // _WIN32
 
+#ifdef __WIIU__
+    if (!InitOTR(argc, argv)) {
+        return 0;
+    }
+#else
     InitOTR(argc, argv);
+#endif
     CrashHandlerRegisterCallback(CrashHandler_PrintExt);
     Heaps_Alloc();
 
