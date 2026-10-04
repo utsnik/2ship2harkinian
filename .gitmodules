@@ -1,6 +1,7 @@
 [submodule "libultraship"]
 	path = libultraship
-	url = https://github.com/kenix3/libultraship.git
+	url = https://github.com/utsnik/libultraship.git
+	branch = 2s2h-wiiu-release
 [submodule "OTRExporter"]
 	path = OTRExporter
 	url = https://github.com/HarbourMasters/OTRExporter.git
