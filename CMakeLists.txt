@@ -6,6 +6,21 @@ set(CMAKE_CXX_STANDARD 20 CACHE STRING "The C++ standard to use")
 set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum OS X deployment version")
 set(GAME_STR "MM")
 project(2s2h VERSION 5.0.1 LANGUAGES C CXX)
+
+if(CMAKE_SYSTEM_NAME STREQUAL "CafeOS")
+    # devkitPPC's toolchain does not declare CMake's whole-archive link feature.
+    foreach(lang C CXX)
+        set(CMAKE_${lang}_LINK_LIBRARY_USING_WHOLE_ARCHIVE
+            "-Wl,--whole-archive" "<LINK_ITEM>" "-Wl,--no-whole-archive")
+        set(CMAKE_${lang}_LINK_LIBRARY_USING_WHOLE_ARCHIVE_SUPPORTED TRUE)
+    endforeach()
+
+    # elf2rpl rejects TLS relocations and PIC yaml-cpp objects on CafeOS.
+    add_compile_definitions(SPDLOG_NO_TLS SPDLOG_NO_THREAD_ID STBI_NO_THREAD_LOCALS)
+    add_compile_definitions(IS_BIGENDIAN)
+    set(YAML_ENABLE_PIC OFF CACHE BOOL "" FORCE)
+endif()
+
 include(CMake/2ship-cvars.cmake)
 include(CMake/lus-cvars.cmake)
 set(SPDLOG_LEVEL_TRACE 0)

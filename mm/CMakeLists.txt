@@ -111,7 +111,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     set_source_files_properties(2s2h/BenPort.cpp PROPERTIES COMPILE_FLAGS "/utf-8")
 endif()
 
-list(FILTER ship__ EXCLUDE REGEX "2s2h/Extractor/*")
+list(FILTER ship__ EXCLUDE REGEX "2s2h/Extractor/")
 
 if(NOT CMAKE_SYSTEM_NAME MATCHES "NintendoSwitch|CafeOS")
     file(GLOB_RECURSE ship__Extractor RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
@@ -423,6 +423,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
                 -Wno-switch-unreachable
                 -Wno-stringop-overflow
             >
+            $<$<COMPILE_LANGUAGE:CXX>:-fpermissive>
         )
     else()
         if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
@@ -587,12 +588,22 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "CafeOS")
     find_package(SDL2 REQUIRED)
     set(ADDITIONAL_LIBRARY_DEPENDENCIES
         "libultraship;"
+        "$<IF:$<TARGET_EXISTS:SDL2_net::SDL2_net-static>,SDL2_net::SDL2_net-static,SDL2_net>"
         SDL2::SDL2-static
+        ${DEVKITPRO}/portlibs/ppc/lib/libopusfile.a
+        ${DEVKITPRO}/portlibs/ppc/lib/libopus.a
+        ${DEVKITPRO}/portlibs/ppc/lib/libvorbisfile.a
+        ${DEVKITPRO}/portlibs/ppc/lib/libvorbis.a
+        ${DEVKITPRO}/portlibs/ppc/lib/libogg.a
+        ${DEVKITPRO}/portlibs/ppc/lib/libpng.a
 
         "$<$<CONFIG:Debug>:-Wl,--wrap=abort>"
+        -Wl,--wrap=__cxa_throw
+        -Wl,--wrap=exit
     )
-    target_include_directories(${PROJECT_NAME} PRIVATE
+    target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
         ${DEVKITPRO}/portlibs/wiiu/include/
+        ${DEVKITPRO}/portlibs/ppc/include/opus
     )
 else()
     find_package(SDL2)
@@ -670,10 +681,10 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "CafeOS")
 wut_create_rpx(${PROJECT_NAME})
 
 wut_create_wuhb(${PROJECT_NAME}
-	NAME       "Two Ship Two Harkinian"
+	NAME       "2 Ship 2 Harkinian"
 	SHORTNAME  "2S2H"
 	AUTHOR     "${PROJECT_TEAM}"
-	ICON       ${CMAKE_CURRENT_SOURCE_DIR}/icon.jpg
+	ICON       ${CMAKE_CURRENT_SOURCE_DIR}/linux/2s2hIcon.png
 )
 
 INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/2s2h.rpx ${CMAKE_CURRENT_BINARY_DIR}/2s2h.wuhb DESTINATION . COMPONENT 2s2h)

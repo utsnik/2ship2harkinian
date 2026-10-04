@@ -33,7 +33,7 @@
 struct ImFont;
 
 const std::string customMessageTableID = "BaseGameOverrides";
-const std::string appShortName = "2ship";
+const std::string appShortName = "2s2h";
 
 #ifdef __WIIU__
 const uint32_t defaultImGuiScale = 3;

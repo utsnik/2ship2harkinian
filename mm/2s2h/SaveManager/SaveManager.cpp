@@ -30,7 +30,11 @@ extern FileSelectState* gFileSelectState;
     ((GET_NEWF(save, 0) == 'Z') && (GET_NEWF(save, 1) == 'E') && (GET_NEWF(save, 2) == 'L') && \
      (GET_NEWF(save, 3) == 'D') && (GET_NEWF(save, 4) == 'A') && (GET_NEWF(save, 5) == '3'))
 
+#ifdef __WIIU__
+const std::filesystem::path savesFolderPath("saves");
+#else
 const std::filesystem::path savesFolderPath(Ship::Context::GetPathRelativeToAppDirectory("saves", appShortName));
+#endif
 
 // Migrations
 // The idea here is that we can read in any version of the save as generic JSON, then apply migrations
@@ -140,10 +144,23 @@ int SaveManager_ReadSaveFile(const std::filesystem::path& fileName, nlohmann::js
     }
 
     try {
+#ifdef __WIIU__
+        // Avoid nlohmann's throwing stream operator on CafeOS; the SD path is relative after WiiU::Init.
+        std::ifstream i(filePath);
+        std::string text((std::istreambuf_iterator<char>(i)), std::istreambuf_iterator<char>());
+        i.close();
+        j = nlohmann::json::parse(text, nullptr, false);
+        if (j.is_discarded()) {
+            SPDLOG_ERROR("Failed to parse save file");
+            return -2;
+        }
+        return 0;
+#else
         std::ifstream i(filePath);
         i >> j;
         i.close();
         return 0;
+#endif
     } catch (...) {
         SPDLOG_ERROR("Failed to read save file");
         return -2;

@@ -1,9 +1,16 @@
 #include "buffers.h"
 #include "z64.h"
 #include <assert.h>
+#if !defined(__APPLE__) && !defined(__OpenBSD__)
+#include <malloc.h>
+#endif
 #include <stdlib.h>
 #if defined(__unix__) || defined(__APPLE__)
 #include <sys/mman.h>
+#endif
+
+#ifndef _MSC_VER
+#include <unistd.h>
 #endif
 
 u8* gAudioHeap;
@@ -18,6 +25,11 @@ void Heaps_Alloc(void) {
     gSystemHeap = mmap(NULL, SYSTEM_HEAP_SIZE, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
     assert(gAudioHeap != MAP_FAILED);
     assert(gSystemHeap != MAP_FAILED);
+#elif defined(_POSIX_VERSION) && (_POSIX_VERSION >= 200112L)
+    if (posix_memalign((void**)&gAudioHeap, 0x10, AUDIO_HEAP_SIZE) != 0)
+        gAudioHeap = NULL;
+    if (posix_memalign((void**)&gSystemHeap, 0x10, SYSTEM_HEAP_SIZE) != 0)
+        gSystemHeap = NULL;
 #else
     gAudioHeap = (u8*)memalign(0x10, AUDIO_HEAP_SIZE);
     gSystemHeap = (u8*)memalign(0x10, SYSTEM_HEAP_SIZE);

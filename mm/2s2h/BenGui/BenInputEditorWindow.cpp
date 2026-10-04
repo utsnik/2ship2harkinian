@@ -7,9 +7,9 @@
 #include "2s2h/BenPort.h"
 #include "2s2h/BenGui/UIWidgets.hpp"
 #include "2s2h/BenGui/BenGui.hpp"
-#ifndef __WIIU__
+// No __WIIU__ guard: this file uses Ship::SDLAxisDirectionToButtonMapping unconditionally and LUS builds the
+// SDL mapping classes on CafeOS.
 #include <ship/controller/controldevice/controller/mapping/sdl/SDLAxisDirectionToButtonMapping.h>
-#endif
 
 #define SCALE_IMGUI_SIZE(value) ((value / 13.0f) * ImGui::GetFontSize())
 

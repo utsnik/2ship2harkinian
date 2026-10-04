@@ -20,6 +20,14 @@
 #include <time.h>
 #endif
 #include <ship/audio/AudioPlayer.h>
+#ifdef __WIIU__
+namespace Ship {
+namespace WiiU {
+void Init(const std::string& shortName);
+void ThrowInvalidOTR();
+} // namespace WiiU
+} // namespace Ship
+#endif
 #include "variables.h"
 #include "z64.h"
 #include "macros.h"
@@ -37,7 +45,9 @@
 #else
 #include <SDL2/SDL_scancode.h>
 #endif
+#if !defined(__WIIU__)
 #include "Extractor/Extract.h"
+#endif
 // OTRTODO
 // #include <functions.h>
 #include "2s2h/Enhancements/FrameInterpolation/FrameInterpolation.h"
@@ -273,6 +283,12 @@ extern std::shared_ptr<BenGui::BenMenu> mBenMenu;
 }
 
 void OTRGlobals::RunExtract(int argc, char* argv[]) {
+#ifdef __WIIU__
+    // ROM extraction, deletion, and desktop popups are host-only. Wii U receives staged O2R files.
+    (void)argc;
+    (void)argv;
+    return;
+#else
     bool extractDone = false;
     ExtractSteps extractStep = ES_PORT_ARCHIVE;
     WindowsSteps windowsStep = WS_TEMP;
@@ -602,10 +618,6 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
         ImGui::PopStyleColor(2);
     }
 
-#ifdef __SWITCH__
-    Ship::Switch::Init(Ship::PreInitPhase);
-#elif defined(__WIIU__)
-    Ship::WiiU::Init(appShortName);
 #endif
 }
 
@@ -952,7 +964,11 @@ ArchiveVersion DetectArchiveVersion(std::string fileName, bool isO2rType) {
 }
 
 extern "C" void Messagebox_ShowErrorBox(char* title, char* body) {
+#if defined(__SWITCH__) || defined(__WIIU__)
+    SPDLOG_ERROR("{}: {}", title, body);
+#else
     Extractor::ShowErrorBox(title, body);
+#endif
 }
 
 bool VerifyArchiveVersion(ArchiveVersion version) {
@@ -960,6 +976,10 @@ bool VerifyArchiveVersion(ArchiveVersion version) {
 }
 
 extern "C" void InitOTR(int argc, char* argv[]) {
+#ifdef __WIIU__
+    // CafeOS starts with the SD card as its cwd. This must be the first statement before Context or archive lookup.
+    Ship::WiiU::Init(appShortName);
+#endif
     OTRGlobals::Instance = new OTRGlobals();
     OTRGlobals::Instance->RunExtract(argc, argv);
 
