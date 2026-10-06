@@ -66,6 +66,9 @@ Put the card back, start the Wii U and open **2 Ship 2 Harkinian** from the Wii 
 first start takes a few seconds longer than later scene changes: the port loads `mm.o2r` into
 memory at start so that moving between areas is quick.
 
+Press **−** to open or close the in-game menu. In the menu, the D-pad moves between items, **A**
+selects and **B** goes back. The game ignores your buttons while the menu is open.
+
 ## Texture packs (optional)
 
 Texture packs are `.o2r` files. Put them in:

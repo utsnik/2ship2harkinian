@@ -1111,6 +1111,11 @@ extern "C" void InitOTR(int argc, char* argv[]) {
         CVarClear("gLetItSnow");
     }
 
+#if defined(__SWITCH__) || defined(__WIIU__)
+    // The menu's checkbox is compiled out on consoles, and without this the [-] button never opens the menu
+    CVarRegisterInteger(CVAR_IMGUI_CONTROLLER_NAV, 1);
+#endif
+
     srand(now);
 #ifdef ENABLE_CROWD_CONTROL
     CrowdControl::Instance = new CrowdControl();
