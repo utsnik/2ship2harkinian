@@ -97,6 +97,18 @@ switched on in the in-game menu's Mods section.
   while the game is running, because the game rewrites it when it closes.
 - Always leave with **HOME -> Close** before taking the SD card out.
 
+## Rumble and gyro
+
+Rumble works on the GamePad, Wii Remotes and Pro Controllers. To aim with the GamePad's gyro:
+
+1. Open the in-game menu (**-**), go to **Settings -> Controls -> Popout Bindings Window**, open the
+   **Gyro** section, select **+** and press **A** on the GamePad.
+2. Turn on **Enhancements -> Camera -> Gyro Aiming**.
+3. Close the menu and aim in first person (bow, Hookshot, first-person view) by turning the GamePad.
+
+The gyro preview in the bindings window stays still: the game ignores the controller while the menu
+is open, so test gyro in the game itself.
+
 ## Known limits
 
 - Distant textures can shimmer (no mipmapping yet).
