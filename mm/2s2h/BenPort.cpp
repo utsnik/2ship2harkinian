@@ -1115,6 +1115,12 @@ extern "C" void InitOTR(int argc, char* argv[]) {
     // The menu's checkbox is compiled out on consoles, and without this the [-] button never opens the menu
     CVarRegisterInteger(CVAR_IMGUI_CONTROLLER_NAV, 1);
 #endif
+#ifdef __WIIU__
+    // Defaults for new installs (a choice made in the menu is kept): actors are drawn twice as far and up to the
+    // edges of the 16:9 picture, so banners and people no longer pop in close by
+    CVarRegisterInteger("gEnhancements.Graphics.IncreaseActorDrawDistance", 2);
+    CVarRegisterInteger("gEnhancements.Graphics.ActorCullingAccountsForWidescreen", 1);
+#endif
 
     srand(now);
 #ifdef ENABLE_CROWD_CONTROL
