@@ -109,6 +109,13 @@ Rumble works on the GamePad, Wii Remotes and Pro Controllers. To aim with the Ga
 The gyro preview in the bindings window stays still: the game ignores the controller while the menu
 is open, so test gyro in the game itself.
 
+## Draw distance
+
+On the Wii U, people and objects such as banners are drawn twice as far away as in the original game,
+and up to the edges of the widescreen picture, so they no longer pop in close by. Both are settings
+in **Enhancements -> Graphics** (**Increase Actor Draw Distance** and **Widescreen Actor Culling**).
+If you changed them yourself, your choice is kept.
+
 ## Known limits
 
 - Distant textures can shimmer (no mipmapping yet).
